@@ -1,0 +1,35 @@
+version: '3.6'
+  
+services:
+  cloudflared:
+    image: visibilityspots/cloudflared:amd64
+    container_name: cloudflared
+    restart: always
+
+  dnsmasq:
+    image: cooperaj/dnsmasq_proxy
+    container_name: dnsmasq
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - "VPN_DNS_SRV=cloudflared"
+      - "VPN_DNS_SRV_PORT=5053"
+    depends_on:
+      - cloudflared
+
+  ipsec:
+    image: hwdsl2/ipsec-vpn-server
+    container_name: ipsec
+    environment:
+      - "VPN_IPSEC_PSK=mypresharedkey" # Replace with something cryptographically strong.
+      - "VPN_USER=user" # Change this
+      - "VPN_PASSWORD=testpassword" # Change this
+      - "VPN_DNS_SRV1=dnsmasq"
+    privileged: true
+    ports:
+      - "500:500/udp"
+      - "4500:4500/udp"
+    restart: always
+    depends_on:
+      - dnsmasq
